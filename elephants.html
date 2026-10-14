@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Слоновий рынок</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #e8eaee;
+    --ink: #1c2230;
+    --muted: #66708a;
+    --line: #cfd4de;
+    --panel: #f6f7f9;
+    --gold: #f0a500;
+    --plum: #6b1d3a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Manrope, "Segoe UI", Arial, sans-serif; background: var(--bg); color: var(--ink); line-height: 1.5; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+
+  /* Шапка */
+  .hero { background: var(--plum); color: #fff; padding: 64px 0 120px; }
+  .hero h1 { font-family: Unbounded, Impact, sans-serif; font-weight: 800; font-size: clamp(34px, 6vw, 64px); line-height: 1.05; }
+  .hero h1 span { display: block; color: var(--gold); }
+  .hero p { margin-top: 18px; max-width: 46ch; color: #e6cdd6; font-size: 18px; }
+
+  /* Итоги: заезжают на шапку */
+  .totals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-top: -72px;
+    background: var(--panel); border-radius: 18px; box-shadow: 0 12px 30px rgba(28,34,48,.18); overflow: hidden; }
+  .totals div { padding: 26px 28px; border-right: 1px solid var(--line); }
+  .totals div:last-child { border-right: 0; background: var(--gold); }
+  .totals b { display: block; font-family: Unbounded, sans-serif; font-size: clamp(22px, 3.4vw, 34px); line-height: 1.2; overflow-wrap: anywhere; }
+  .totals small { color: var(--muted); font-size: 15px; }
+  .totals div:last-child small { color: #4a3600; }
+
+  /* Управление */
+  .bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 40px 0 12px; }
+  .bar input { flex: 1 1 240px; padding: 14px 18px; font: inherit; border: 2px solid var(--line); border-radius: 999px; background: var(--panel); }
+  .bar input:focus, .sorts button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+  .sorts { display: flex; gap: 8px; flex-wrap: wrap; }
+  .sorts button { font: inherit; font-weight: 600; padding: 12px 18px; border: 2px solid var(--line); border-radius: 999px; background: transparent; color: var(--ink); cursor: pointer; }
+  .sorts button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+
+  /* Список строками */
+  .list { list-style: none; }
+  .row { display: grid; grid-template-columns: 1fr 190px 190px; gap: 20px; align-items: center;
+    padding: 22px 4px; border-bottom: 1px solid var(--line); }
+  .row h2 { font-size: 21px; font-weight: 700; }
+  .row .price { color: var(--muted); font-size: 15px; }
+  .stock { font-size: 15px; color: var(--muted); }
+  .stock i { display: block; height: 8px; margin-top: 6px; border-radius: 4px; background: var(--line); overflow: hidden; }
+  .stock i::after { content: ""; display: block; height: 100%; width: var(--w); background: var(--plum); border-radius: 4px; }
+  .sum { text-align: right; font-family: Unbounded, sans-serif; font-weight: 600; font-size: 18px; }
+  .sum small { display: block; font-family: Manrope, sans-serif; font-weight: 400; color: var(--muted); font-size: 14px; }
+
+  .msg { padding: 48px 0; text-align: center; color: var(--muted); font-size: 18px; }
+  .error { color: #b00020; }
+  footer { height: 60px; }
+
+  @media (max-width: 720px) {
+    .totals { grid-template-columns: 1fr; }
+    .totals div { border-right: 0; border-bottom: 1px solid var(--line); }
+    .row { grid-template-columns: 1fr; gap: 10px; }
+    .sum { text-align: left; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <h1>Слоновий <span>рынок</span></h1>
+    <p>Все породы в наличии: цена за голову, остаток на складе и стоимость партии.</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="totals" aria-label="Итоги">
+    <div><b id="t-models">–</b><small>Моделей</small></div>
+    <div><b id="t-qty">–</b><small>Всего штук</small></div>
+    <div><b id="t-sum">–</b><small>Общая стоимость</small></div>
+  </section>
+
+  <div class="bar">
+    <input id="search" type="search" placeholder="Найти слона по названию" aria-label="Поиск">
+    <div class="sorts" id="sorts">
+      <button data-key="name" aria-pressed="true">По названию</button>
+      <button data-key="price" aria-pressed="false">По цене</button>
+      <button data-key="quantity" aria-pressed="false">По остатку</button>
+      <button data-key="total" aria-pressed="false">По стоимости партии</button>
+    </div>
+  </div>
+
+  <ul class="list" id="list"></ul>
+</main>
+<footer></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+  // Вставьте данные из Supabase: Project Settings → API
+  const SUPABASE_URL = 'https://ВАШ-ПРОЕКТ.supabase.co';
+  const SUPABASE_KEY = 'ВАШ_ANON_PUBLIC_KEY';
+  const CURRENCY = '₸'; // поменяйте на ₽, $ и т. д.
+
+  const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const $ = id => document.getElementById(id);
+  const fmt = n => Number(n).toLocaleString('ru-RU', { maximumFractionDigits: 0 });
+  const money = n => fmt(n) + '\u00a0' + CURRENCY;
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  let items = [];
+  let sortKey = 'name';
+
+  async function load() {
+    $('list').innerHTML = '<li class="msg">Загрузка...</li>';
+    const { data, error } = await db.from('products').select('id, name, price, quantity, total');
+    if (error) {
+      $('list').innerHTML = '<li class="msg error">Ошибка: ' + esc(error.message) + '</li>';
+      return;
+    }
+    items = data.map(p => ({ ...p, total: p.total ?? p.price * p.quantity }));
+    // Итоги считаются по всей таблице, поиск на них не влияет
+    $('t-models').textContent = items.length;
+    $('t-qty').textContent = fmt(items.reduce((s, p) => s + p.quantity, 0));
+    $('t-sum').textContent = money(items.reduce((s, p) => s + Number(p.total), 0));
+    render();
+  }
+
+  function render() {
+    const q = $('search').value.trim().toLowerCase();
+    const maxQty = Math.max(1, ...items.map(p => p.quantity));
+    const list = items
+      .filter(p => p.name.toLowerCase().includes(q))
+      .sort((a, b) => sortKey === 'name'
+        ? a.name.localeCompare(b.name, 'ru')
+        : Number(b[sortKey]) - Number(a[sortKey]));
+
+    $('list').innerHTML = list.length ? list.map(p => `
+      <li class="row">
+        <div>
+          <h2>${esc(p.name)}</h2>
+          <div class="price">${money(p.price)} за голову</div>
+        </div>
+        <div class="stock">В наличии: ${p.quantity} шт.
+          <i style="--w:${(p.quantity / maxQty * 100).toFixed(0)}%"></i>
+        </div>
+        <div class="sum">${money(p.total)}<small>стоимость партии</small></div>
+      </li>`).join('') : '<li class="msg">Такого слона у нас нет</li>';
+  }
+
+  $('search').addEventListener('input', render);
+  $('sorts').addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    sortKey = btn.dataset.key;
+    document.querySelectorAll('#sorts button').forEach(b => b.setAttribute('aria-pressed', b === btn));
+    render();
+  });
+  load();
+</script>
+</body>
+</html>
